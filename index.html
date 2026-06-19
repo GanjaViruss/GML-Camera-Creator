@@ -1,0 +1,766 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+<title>GML Camera Creator — a full camera system for GameMaker</title>
+<style>
+  :root{
+    --bg:#141414; --panel:#1e1e1e; --panel2:#252525; --field:#181818;
+    --border:#333; --border2:#444; --txt:#d4d4d4; --muted:#777;
+    --accent:#00ff9d; --accent2:#00c478; --accent3:#00ff9d22;
+    --red:#ff5d5d; --yellow:#ffd166; --claude:#d97757; --blue:#5db0ff;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{background:var(--bg); color:var(--txt); font-family:'Segoe UI',system-ui,-apple-system,sans-serif; line-height:1.55; padding:0 0 60px;
+    background-image:radial-gradient(circle at 12% 8%, rgba(0,255,157,.05), transparent 42%),radial-gradient(circle at 88% 92%, rgba(93,176,255,.045), transparent 42%); background-attachment:fixed;}
+  .wrap{max-width:1180px; margin:0 auto; padding:0 16px;}
+  h1{font-size:clamp(26px,5vw,38px); font-weight:800; letter-spacing:-.02em; padding-top:34px;}
+  h1 .g{color:var(--accent);}
+  .sub{color:var(--muted); font-size:14px; margin-top:8px; max-width:680px;}
+  .sub code{color:var(--accent2); font-family:Consolas,monospace; font-size:13px;}
+  .by{font-size:12.5px; color:var(--muted); margin-top:9px;}
+  .by a{color:var(--accent2); text-decoration:none;}
+  .by .claude{color:var(--claude);}
+  .badge-wrap{margin-top:12px;}
+  .ai-badge{display:inline-block; font-size:11px; letter-spacing:.05em; color:var(--claude); border:1px solid rgba(217,119,87,.35); border-radius:30px; padding:3px 11px; background:rgba(217,119,87,.06);}
+
+  /* top guide */
+  .guide{background:linear-gradient(160deg,var(--panel),#161616); border:1px solid var(--border2); border-radius:12px; margin:20px 0; overflow:hidden;}
+  .guide summary{cursor:pointer; padding:14px 16px; font-size:15px; font-weight:700; color:var(--txt); list-style:none; display:flex; align-items:center; gap:10px; user-select:none;}
+  .guide summary::-webkit-details-marker{display:none;}
+  .guide .gico{font-size:18px;}
+  .guide .gtoggle{margin-left:auto; font-size:11px; font-weight:400; color:var(--muted);}
+  .guide[open] summary{border-bottom:1px solid var(--border);}
+  .guide-body{padding:16px;}
+  .guide-body p{font-size:13.5px; line-height:1.6; margin:0 0 11px;}
+  .guide-body code{background:var(--field); border:1px solid var(--border2); border-radius:4px; padding:1px 5px; font-family:Consolas,monospace; font-size:12px; color:var(--accent2);}
+  .guide-h{font-size:12px; font-weight:800; text-transform:uppercase; letter-spacing:.6px; color:var(--accent2); margin:16px 0 7px;}
+  .guide-steps{margin:0 0 11px; padding-left:20px; display:flex; flex-direction:column; gap:7px;}
+  .guide-steps li{font-size:13px; line-height:1.55;}
+  .guide-note{font-size:12.5px; color:var(--muted); padding:11px; background:var(--field); border:1px solid var(--border); border-radius:8px; margin-top:6px;}
+  .guide-note code{color:var(--yellow);}
+
+  .main{display:grid; grid-template-columns:1fr; gap:18px; margin-top:6px;}
+  @media(min-width:980px){ .main{grid-template-columns:minmax(0,440px) minmax(0,1fr);} }
+
+  .card{background:linear-gradient(160deg,var(--panel),#171717); border:1px solid var(--border); border-radius:14px; padding:18px;}
+  .card + .card{margin-top:16px;}
+  .sec-head{display:flex; align-items:flex-start; gap:11px; margin-bottom:15px;}
+  .sec-num{flex:0 0 26px; width:26px; height:26px; border-radius:8px; background:var(--accent); color:#06231a; font-weight:800; font-size:14px; display:flex; align-items:center; justify-content:center;}
+  .sec-title{font-size:15px; font-weight:800;}
+  .sec-desc{font-size:12px; color:var(--muted); margin-top:2px;}
+
+  .opt-group{margin-bottom:16px;}
+  .opt-group:last-child{margin-bottom:0;}
+  .og-label{font-size:12px; font-weight:700; color:var(--accent2); text-transform:uppercase; letter-spacing:.5px; margin-bottom:8px; display:flex; align-items:center; gap:7px;}
+
+  .row{display:flex; align-items:center; gap:10px; margin-bottom:10px; flex-wrap:wrap;}
+  .row .w{flex:0 0 116px; font-size:13px; color:var(--txt);}
+  label.lbl{font-size:13px;}
+  input[type=text], input[type=number], select{background:var(--field); color:var(--txt); border:1px solid var(--border2); border-radius:7px; padding:7px 9px; font-size:13px; font-family:inherit;}
+  input.mono{font-family:Consolas,monospace;}
+  input.sm{width:90px;} input.xs{width:64px;}
+  input[type=text]:focus, input[type=number]:focus, select:focus{outline:none; border-color:var(--accent2);}
+  .hint{font-size:11.5px; color:var(--muted); line-height:1.45;}
+
+  /* segmented buttons */
+  .seg{display:inline-flex; background:var(--field); border:1px solid var(--border2); border-radius:8px; padding:3px; gap:3px; flex-wrap:wrap;}
+  .seg button{background:transparent; border:none; color:var(--muted); font-family:inherit; font-size:12.5px; font-weight:600; padding:6px 12px; border-radius:6px; cursor:pointer; transition:all .12s;}
+  .seg button.on{background:var(--accent); color:#06231a;}
+  .seg button:not(.on):hover{color:var(--txt);}
+
+  /* toggle switch */
+  .switch{display:flex; align-items:center; gap:10px; padding:9px 11px; background:var(--field); border:1px solid var(--border); border-radius:9px; margin-bottom:9px; cursor:pointer; transition:border-color .12s;}
+  .switch:hover{border-color:var(--border2);}
+  .switch.on{border-color:var(--accent2); background:rgba(0,255,157,.04);}
+  .switch .box{flex:0 0 38px; width:38px; height:21px; background:var(--border2); border-radius:20px; position:relative; transition:background .15s;}
+  .switch.on .box{background:var(--accent);}
+  .switch .box::after{content:''; position:absolute; top:2px; left:2px; width:17px; height:17px; background:#fff; border-radius:50%; transition:transform .15s;}
+  .switch.on .box::after{transform:translateX(17px);}
+  .switch .txt{flex:1;}
+  .switch .txt b{font-size:13.5px; display:block;}
+  .switch .txt span{font-size:11.5px; color:var(--muted);}
+  .sub-opts{padding:4px 0 6px 12px; margin-bottom:9px; border-left:2px solid var(--border2); display:none;}
+  .sub-opts.show{display:block;}
+
+  /* output */
+  .out-card{position:sticky; top:14px;}
+  .out-head{display:flex; align-items:center; gap:10px; margin-bottom:6px; flex-wrap:wrap;}
+  .out-title{font-size:14px; font-weight:800;}
+  .out-sub{font-size:11.5px; color:var(--muted);}
+  .copy-btn{margin-left:auto; background:var(--accent); color:#06231a; border:none; border-radius:8px; padding:7px 14px; font-size:12.5px; font-weight:700; font-family:inherit; cursor:pointer; transition:filter .12s;}
+  .copy-btn:hover{filter:brightness(1.08);}
+  .copy-btn.copied{background:var(--accent2);}
+  .out-block{margin-bottom:14px;}
+  .out-block .obh{display:flex; align-items:center; gap:8px; margin-bottom:5px;}
+  .out-block .obn{font-size:11px; font-weight:700; color:var(--accent2); text-transform:uppercase; letter-spacing:.5px;}
+  .out-block .obnote{font-size:11px; color:var(--muted);}
+  textarea.code{width:100%; background:#0d0d0d; color:#cfcfcf; border:1px solid var(--border); border-radius:9px; padding:11px 12px; font-family:Consolas,monospace; font-size:11.5px; line-height:1.5; resize:vertical; white-space:pre; overflow-x:auto; tab-size:4;}
+  textarea.code:focus{outline:none; border-color:var(--border2);}
+  .ev-tag{display:inline-block; font-size:10.5px; font-family:Consolas,monospace; color:var(--yellow); background:rgba(255,209,102,.08); border:1px solid rgba(255,209,102,.2); border-radius:4px; padding:1px 6px;}
+
+  footer{text-align:center; padding:34px 16px 10px; color:var(--muted); font-size:12.5px;}
+  footer a{color:var(--accent2); text-decoration:none;}
+  .ghbtn{display:inline-flex; align-items:center; gap:8px; margin-bottom:16px; background:var(--panel); border:1px solid var(--border2); color:var(--txt); border-radius:10px; padding:9px 16px; font-size:13px; font-weight:600; text-decoration:none;}
+  .ghbtn svg{width:18px; height:18px; fill:currentColor;}
+  .credit .c{color:var(--claude);}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1><span class="g">GML</span> Camera Creator</h1>
+  <div class="sub">Build a complete camera system for GameMaker — follow, deadzone, screen shake, zoom, resolution and aspect-ratio handling. Pick your options, get one <code>obj_camera</code> ready to drop in.</div>
+  <div class="by">by <a href="https://github.com/GanjaViruss" target="_blank">GanjaViruss</a> &amp; <span class="claude">Claude Opus 4.8 &amp; Sonnet 4.6</span></div>
+  <div class="badge-wrap"><span class="ai-badge">✦ Built with AI</span></div>
+
+  <details class="guide" open>
+    <summary><span class="gico">📖</span> What is this &amp; how to use it <span class="gtoggle">tap to fold</span></summary>
+    <div class="guide-body">
+      <p>Cameras in GameMaker trip a lot of people up — views, viewports, the application surface, the GUI layer, and aspect ratio all interact, and it's easy to end up with a blurry or stretched mess. This tool generates a clean, complete camera object from a few choices, so you skip the boilerplate and the head-scratching.</p>
+
+      <div class="guide-h">What you get</div>
+      <p>One script with <code>camera_init()</code>, <code>camera_update()</code> and optional helpers like <code>camera_shake()</code> and <code>camera_set_zoom()</code>. You paste it into a script asset, then call the functions from an <code>obj_camera</code>. The tool shows you exactly which call goes in which event.</p>
+
+      <div class="guide-h">How to set it up</div>
+      <ol class="guide-steps">
+        <li>Make a new <b>Script</b> asset (e.g. <code>scr_camera</code>) and paste the generated script into it.</li>
+        <li>Make an object <code>obj_camera</code>, place it in your room (no sprite needed).</li>
+        <li>Put the calls in the events the tool tells you: <b>Create</b> → <code>camera_init()</code>, <b>Step</b> → <code>camera_update()</code> (plus input if you enabled zoom).</li>
+        <li>Set your room's viewport/camera to match your base resolution, or just let the code handle it. Run the game.</li>
+      </ol>
+      <p class="guide-note"><code>obj_player</code> is just a placeholder for whatever the camera follows — use your own object. The generated code is plain GML; open it and tweak anything. To trigger a shake from anywhere (e.g. on hit): <code>with (obj_camera) camera_shake(4, 20);</code></p>
+
+      <div class="guide-h">About GUI scaling (the "Scaled" option)</div>
+      <p>The GUI (HUD) layer can work three ways. <b>Match base</b> and <b>Custom</b> let GameMaker stretch a fixed GUI size to the screen — simple, but on a pixel-art game the HUD gets blurry when stretched. <b>Scaled</b> fixes that: it sets the GUI to the real screen size and gives you a <code>GUI_SCALE</code> value. You multiply your HUD draws by it, so everything stays crisp and the right size on any screen.</p>
+      <p>It works out to <code>1</code> at your design size, <code>2</code> at double, <code>0.5</code> at half, and so on. Use it like this in Draw GUI:</p>
+      <p style="margin:0 0 11px;"><code>draw_sprite_ext(spr_heart, 0, x, y, GUI_SCALE, GUI_SCALE, 0, c_white, 1);</code><br><code>draw_text_transformed(x, y, "SCORE", GUI_SCALE, GUI_SCALE, 0);</code></p>
+      <p>On top of that there's a <b>user multiplier</b> — <code>global.gui_scale_user</code> (1.0 = normal). Call <code>gui_scale_increase()</code> / <code>gui_scale_decrease()</code> from your options menu and the whole HUD scales up or down by your chosen step (default 5%). So someone on a 4K screen who still wants a bigger HUD can just bump it. Save <code>global.gui_scale_user</code> with your settings to remember it.</p>
+    </div>
+  </details>
+
+  <div class="main">
+    <!-- OPTIONS COLUMN -->
+    <div class="build-col">
+
+      <div class="card">
+        <div class="sec-head">
+          <span class="sec-num">1</span>
+          <div><div class="sec-title">Resolution &amp; render mode</div><div class="sec-desc">The size your game renders at, and how it scales to the screen.</div></div>
+        </div>
+
+        <div class="opt-group">
+          <div class="og-label">Base resolution</div>
+          <div class="row">
+            <div class="seg" id="resPresets">
+              <button data-w="320" data-h="180">320×180</button>
+              <button data-w="480" data-h="270">480×270</button>
+              <button data-w="640" data-h="360" class="on">640×360</button>
+              <button data-w="1280" data-h="720">1280×720</button>
+              <button data-w="1920" data-h="1080">1920×1080</button>
+            </div>
+          </div>
+          <div class="row">
+            <span class="w">Custom</span>
+            <input type="number" class="mono xs" id="baseW" value="640"> ×
+            <input type="number" class="mono xs" id="baseH" value="360">
+            <span class="hint">pixels</span>
+          </div>
+        </div>
+
+        <div class="opt-group">
+          <div class="og-label">Render mode</div>
+          <div class="seg" id="modeSeg">
+            <button data-mode="pixel" class="on">Pixel art</button>
+            <button data-mode="hd">Smooth / HD</button>
+          </div>
+          <div class="hint" id="modeHint" style="margin-top:7px;">Pixel art: surface stays at base size, scaled with no blur (nearest-neighbour). Best for pixel games.</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="sec-head">
+          <span class="sec-num">2</span>
+          <div><div class="sec-title">Follow</div><div class="sec-desc">What the camera tracks and how.</div></div>
+        </div>
+        <div class="row">
+          <span class="w">Follow target</span>
+          <input type="text" class="mono sm" id="target" value="obj_player" style="width:140px;">
+        </div>
+        <div class="switch on" data-sw="smooth"><div class="box"></div><div class="txt"><b>Smooth follow</b><span>ease toward the target instead of snapping</span></div></div>
+        <div class="sub-opts show" id="sub-smooth">
+          <div class="row"><span class="w">Smoothing</span><input type="number" class="mono xs" id="lerpSpd" value="0.2" step="0.05" min="0.01" max="1"><span class="hint">0.1 = slow/smooth, 1 = instant</span></div>
+        </div>
+        <div class="switch" data-sw="deadzone"><div class="box"></div><div class="txt"><b>Deadzone</b><span>player moves freely inside a box before the camera follows</span></div></div>
+        <div class="sub-opts" id="sub-deadzone">
+          <div class="row"><span class="w">Deadzone size</span><input type="number" class="mono xs" id="dzW" value="40"> × <input type="number" class="mono xs" id="dzH" value="24"><span class="hint">half-width / half-height</span></div>
+        </div>
+        <div class="switch on" data-sw="clamp"><div class="box"></div><div class="txt"><b>Clamp to room</b><span>stop the camera at the room edges</span></div></div>
+      </div>
+
+      <div class="card">
+        <div class="sec-head">
+          <span class="sec-num">3</span>
+          <div><div class="sec-title">Extras</div><div class="sec-desc">Optional features — turn on what you need.</div></div>
+        </div>
+        <div class="switch" data-sw="shake"><div class="box"></div><div class="txt"><b>Screen shake</b><span>adds a <code>camera_shake(amount, length)</code> function</span></div></div>
+        <div class="switch" data-sw="zoom"><div class="box"></div><div class="txt"><b>Zoom</b><span>smooth zoom in/out with a control of your choice</span></div></div>
+        <div class="sub-opts" id="sub-zoom">
+          <div class="row"><span class="w">Range</span><input type="number" class="mono xs" id="zoomMin" value="1" step="0.5"> to <input type="number" class="mono xs" id="zoomMax" value="4" step="0.5"></div>
+          <div class="row"><span class="w">Control</span>
+            <div class="seg" id="zoomCtrl">
+              <button data-ctrl="wheel" class="on">Mouse wheel</button>
+              <button data-ctrl="keys">Q / E keys</button>
+              <button data-ctrl="none">Code only</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="sec-head">
+          <span class="sec-num">4</span>
+          <div><div class="sec-title">Window &amp; aspect ratio</div><div class="sec-desc">Fullscreen and how the game fits different screens.</div></div>
+        </div>
+        <div class="switch" data-sw="window"><div class="box"></div><div class="txt"><b>Resolution function</b><span>adds <code>camera_set_resolution()</code> for fullscreen / window switching</span></div></div>
+        <div class="sub-opts" id="sub-window">
+          <div class="opt-group" style="margin-bottom:10px;">
+            <div class="og-label">Aspect ratio</div>
+            <div class="seg" id="aspectSeg">
+              <button data-aspect="keep" class="on">Keep (letterbox)</button>
+              <button data-aspect="expand">Expand view</button>
+              <button data-aspect="stretch">Stretch</button>
+            </div>
+            <div class="hint" id="aspectHint" style="margin-top:7px;">Keep: black bars, pixels stay square. The safe default.</div>
+          </div>
+          <div class="switch" data-sw="borderless" style="margin-bottom:0;"><div class="box"></div><div class="txt"><b>Borderless fullscreen</b><span>use borderless instead of exclusive fullscreen</span></div></div>
+        </div>
+        <div class="opt-group" style="margin-top:14px;">
+          <div class="og-label">GUI layer</div>
+          <div class="seg" id="guiSeg">
+            <button data-gui="base" class="on">Match base</button>
+            <button data-gui="custom">Custom size</button>
+            <button data-gui="scaled">Scaled + user</button>
+          </div>
+          <div class="hint" id="guiHint" style="margin-top:7px;">Match base: GUI uses the base resolution, GameMaker stretches it to fit. Simplest, HUD looks the same everywhere.</div>
+          <div class="sub-opts" id="sub-gui" style="margin-top:8px;">
+            <div class="row"><span class="w">Design size</span><input type="number" class="mono xs" id="guiW" value="1920"> × <input type="number" class="mono xs" id="guiH" value="1080"><span class="hint">scale = 1 at this size</span></div>
+            <div class="row" id="row-guiStep"><span class="w">User step</span><input type="number" class="mono xs" id="guiScaleStep" value="0.05" step="0.05" min="0.01"><span class="hint">how much each +/- changes HUD size (0.05 = 5%)</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="sec-head">
+          <span class="sec-num">5</span>
+          <div><div class="sec-title">Naming</div><div class="sec-desc">Match your project's conventions.</div></div>
+        </div>
+        <div class="row"><span class="w">Object name</span><input type="text" class="mono sm" id="objName" value="obj_camera" style="width:160px;"></div>
+        <div class="hint">Used in comments and the example calls. Doesn't have to match exactly, but it's clearer if it does.</div>
+      </div>
+
+    </div>
+
+    <!-- OUTPUT COLUMN -->
+    <div class="out-col">
+      <div class="card out-card">
+        <div class="out-head">
+          <div><div class="out-title">Your camera</div><div class="out-sub">paste into a script asset</div></div>
+          <button class="copy-btn" data-copy="outScript">Copy script</button>
+        </div>
+
+        <div class="out-block">
+          <div class="obh"><span class="obn">The script</span><span class="obnote">→ a new script asset (e.g. scr_camera)</span></div>
+          <textarea class="code" id="outScript" rows="20" spellcheck="false" readonly></textarea>
+        </div>
+
+        <div class="out-block">
+          <div class="obh"><span class="obn">Create event</span><span class="ev-tag">obj_camera · Create</span></div>
+          <textarea class="code" id="outCreate" rows="2" spellcheck="false" readonly></textarea>
+        </div>
+
+        <div class="out-block">
+          <div class="obh"><span class="obn">Step event</span><span class="ev-tag">obj_camera · Step</span></div>
+          <textarea class="code" id="outStep" rows="3" spellcheck="false" readonly></textarea>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    <a class="ghbtn" href="https://github.com/GanjaViruss/GML-Camera-Creator" target="_blank" rel="noopener">
+      <svg viewBox="0 0 16 16"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.6 7.6 0 0 1 4 0c1.53-1.03 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg>
+      View on GitHub
+    </a>
+    <div class="credit">Built by <a href="https://github.com/GanjaViruss" target="_blank">GanjaViruss</a> with <span class="c">Claude Opus 4.8 &amp; Sonnet 4.6</span> · Part of <a href="https://github.com/GanjaViruss/GML-Tools">GML Tools</a> · MIT</div>
+  </footer>
+</div>
+
+<script>
+(function(){
+  const $ = id => document.getElementById(id);
+  const SKEY = 'gml_camera_v1';
+
+  // ---------- state ----------
+  const o = {
+    baseW:640, baseH:360, mode:'pixel',
+    target:'obj_player',
+    smooth:true, lerpSpd:0.2,
+    deadzone:false, dzW:40, dzH:24,
+    clamp:true,
+    shake:false,
+    zoom:false, zoomMin:1, zoomMax:4, zoomCtrl:'wheel',
+    window:false, aspect:'keep', borderless:false,
+    guiMode:'base', guiW:1920, guiH:1080, guiScaleStep:0.05,
+    objName:'obj_camera'
+  };
+
+  // ============================================================
+  // GENERATOR
+  // ============================================================
+  // GUI block — shared by camera_init and camera_set_resolution.
+  // isInit=true means we have window_get_* available even without the resolution fn.
+  function pushGui(P, W, H, isInit){
+    if(o.guiMode === 'scaled'){
+      // GUI sized to the screen, plus a scale factor you multiply your HUD by.
+      // GUI_SCALE = 1 at the design size, 2 at double, etc. Times the player's preference.
+      const dispW = (o.window && !isInit) ? '_disp_w' : 'window_get_width()';
+      const dispH = (o.window && !isInit) ? '_disp_h' : 'window_get_height()';
+      P.push('    // GUI scaled to the screen + a user preference multiplier');
+      P.push('    var _gw = '+dispW+';');
+      P.push('    var _gh = '+dispH+';');
+      P.push('    display_set_gui_size(_gw, _gh);');
+      P.push('    global.gui_scale = min(_gw / '+num(o.guiW,W)+', _gh / '+num(o.guiH,H)+') * global.gui_scale_user;');
+    } else if(o.guiMode === 'base'){
+      P.push('    display_set_gui_size(cam_w, cam_h);');
+    } else {
+      P.push('    display_set_gui_size('+num(o.guiW,W)+', '+num(o.guiH,H)+');');
+    }
+  }
+
+  function genScript(){
+    const P = [];
+    const obj = san(o.objName) || 'obj_camera';
+    const W = num(o.baseW,640), H = num(o.baseH,360);
+    const pix = o.mode === 'pixel';
+    const target = san(o.target) || 'obj_player';
+
+    P.push('// ============================================================');
+    P.push('// '+obj+' — camera system');
+    P.push('// Generated by GML Camera Creator');
+    P.push('// ============================================================');
+    P.push('');
+    P.push('#macro CAMERA view_camera[0]');
+    if(o.guiMode === 'scaled'){
+      P.push('#macro GUI_SCALE global.gui_scale          // multiply your HUD draws by this');
+    }
+    P.push('');
+
+    // ---- camera_init ----
+    P.push('function camera_init() {');
+    if(o.guiMode === 'scaled'){
+      P.push('    // GUI scale: user preference (1.0 = normal). Persist this in your save if you like.');
+      P.push('    if (!variable_global_exists("gui_scale_user")) global.gui_scale_user = 1.0;');
+      P.push('    global.gui_scale = 1.0;');
+      P.push('');
+    }
+    P.push('    // base resolution — the game renders at this size');
+    P.push('    cam_w = '+W+';');
+    P.push('    cam_h = '+H+';');
+    if(o.zoom){
+      P.push('    cam_zoom = 1;');
+      P.push('    cam_zoom_target = 1;');
+      P.push('    cam_zoom_min = '+num(o.zoomMin,1)+';');
+      P.push('    cam_zoom_max = '+num(o.zoomMax,4)+';');
+    }
+    P.push('    cam_x = 0;');
+    P.push('    cam_y = 0;');
+    P.push('');
+    P.push('    target = '+target+';');
+    if(o.deadzone){
+      P.push('    // deadzone — half size of the free-move box around the target');
+      P.push('    cam_dz_w = '+num(o.dzW,40)+';');
+      P.push('    cam_dz_h = '+num(o.dzH,24)+';');
+    }
+    if(o.smooth && !o.deadzone){
+      P.push('    cam_lerp = '+num(o.lerpSpd,0.2)+';   // 0..1, lower = smoother');
+    }
+    if(o.shake){
+      P.push('    // screen shake state');
+      P.push('    cam_shake_amount = 0;');
+      P.push('    cam_shake_length = 0;');
+      P.push('    cam_shake_timer  = 0;');
+    }
+    P.push('');
+    P.push('    if (instance_exists(target)) {');
+    P.push('        cam_x = target.x - cam_w / 2;');
+    P.push('        cam_y = target.y - cam_h / 2;');
+    P.push('    }');
+    P.push('');
+    P.push('    view_enabled = true;');
+    P.push('    view_visible[0] = true;');
+    P.push('    view_camera[0] = camera_create_view(cam_x, cam_y, cam_w, cam_h);');
+    P.push('');
+    if(pix){
+      P.push('    // pixel-perfect: surface stays at base size, no texture filtering');
+      P.push('    gpu_set_texfilter(false);');
+      P.push('    surface_resize(application_surface, cam_w, cam_h);');
+    } else {
+      P.push('    // smooth/HD: surface at window size for crisp scaling');
+      P.push('    surface_resize(application_surface, window_get_width(), window_get_height());');
+    }
+    pushGui(P, W, H, true);
+    P.push('}');
+    P.push('');
+
+    // ---- camera_update ----
+    P.push('function camera_update() {');
+    P.push('    if (!instance_exists(target)) return;');
+    P.push('');
+    if(pix){
+      P.push('    // keep the surface at base size (it can reset when the window changes)');
+      P.push('    if (surface_get_width(application_surface)  != cam_w');
+      P.push('     || surface_get_height(application_surface) != cam_h) {');
+      P.push('        surface_resize(application_surface, cam_w, cam_h);');
+      P.push('    }');
+      P.push('');
+    }
+    if(o.deadzone){
+      P.push('    // --- deadzone follow ---');
+      P.push('    var _cx = cam_x + cam_w / 2;');
+      P.push('    var _cy = cam_y + cam_h / 2;');
+      P.push('    var _dx = target.x - _cx;');
+      P.push('    var _dy = target.y - _cy;');
+      P.push('    if (_dx >  cam_dz_w) cam_x += _dx - cam_dz_w;');
+      P.push('    if (_dx < -cam_dz_w) cam_x += _dx + cam_dz_w;');
+      P.push('    if (_dy >  cam_dz_h) cam_y += _dy - cam_dz_h;');
+      P.push('    if (_dy < -cam_dz_h) cam_y += _dy + cam_dz_h;');
+    } else {
+      P.push('    // --- follow target ---');
+      P.push('    var _tx = target.x - cam_w / 2;');
+      P.push('    var _ty = target.y - cam_h / 2;');
+      if(o.smooth){
+        P.push('    cam_x = lerp(cam_x, _tx, cam_lerp);');
+        P.push('    cam_y = lerp(cam_y, _ty, cam_lerp);');
+      } else {
+        P.push('    cam_x = _tx;');
+        P.push('    cam_y = _ty;');
+      }
+    }
+    P.push('');
+    if(o.clamp){
+      P.push('    // --- keep inside the room ---');
+      P.push('    cam_x = clamp(cam_x, 0, room_width  - cam_w);');
+      P.push('    cam_y = clamp(cam_y, 0, room_height - cam_h);');
+      P.push('');
+    }
+    if(o.zoom){
+      P.push('    // --- zoom ---');
+      P.push('    cam_zoom = lerp(cam_zoom, cam_zoom_target, 0.2);');
+      P.push('    var _zw = cam_w / cam_zoom;');
+      P.push('    var _zh = cam_h / cam_zoom;');
+      P.push('    var _zx = (cam_x + cam_w / 2) - _zw / 2;');
+      P.push('    var _zy = (cam_y + cam_h / 2) - _zh / 2;');
+      P.push('');
+    }
+    if(o.shake){
+      P.push('    // --- screen shake ---');
+      P.push('    var _shx = 0, _shy = 0;');
+      P.push('    if (cam_shake_timer > 0) {');
+      P.push('        cam_shake_timer -= 1;');
+      P.push('        var _amt = cam_shake_amount * (cam_shake_timer / cam_shake_length);');
+      P.push('        _shx = random_range(-_amt, _amt);');
+      P.push('        _shy = random_range(-_amt, _amt);');
+      P.push('    }');
+      P.push('');
+    }
+    const ax = o.zoom ? '_zx' : 'cam_x';
+    const ay = o.zoom ? '_zy' : 'cam_y';
+    const fx = o.shake ? (ax+' + _shx') : ax;
+    const fy = o.shake ? (ay+' + _shy') : ay;
+    P.push('    // --- apply to the camera ---');
+    P.push('    camera_set_view_pos(CAMERA, '+fx+', '+fy+');');
+    if(o.zoom){
+      P.push('    camera_set_view_size(CAMERA, _zw, _zh);');
+    }
+    P.push('}');
+    P.push('');
+
+    // ---- camera_shake ----
+    if(o.shake){
+      P.push('/// @desc Trigger a screen shake');
+      P.push('/// @param {real} _amount  strength in pixels');
+      P.push('/// @param {real} _length  duration in frames');
+      P.push('function camera_shake(_amount, _length) {');
+      P.push('    cam_shake_amount = _amount;');
+      P.push('    cam_shake_length = max(1, _length);');
+      P.push('    cam_shake_timer  = cam_shake_length;');
+      P.push('}');
+      P.push('');
+    }
+
+    // ---- zoom helper ----
+    if(o.zoom){
+      P.push('/// @desc Set the zoom level (clamped to the range)');
+      P.push('function camera_set_zoom(_z) {');
+      P.push('    cam_zoom_target = clamp(_z, cam_zoom_min, cam_zoom_max);');
+      P.push('}');
+      P.push('');
+    }
+
+    // ---- resolution ----
+    if(o.window){
+      P.push('/// @desc Apply a window resolution and rescale (call when settings change)');
+      P.push('/// @param {real} _win_w');
+      P.push('/// @param {real} _win_h');
+      P.push('/// @param {bool} _fullscreen');
+      P.push('function camera_set_resolution(_win_w, _win_h, _fullscreen) {');
+      P.push('    window_set_fullscreen(_fullscreen);');
+      if(o.borderless){
+        P.push('    window_set_borderless_fullscreen(_fullscreen);');
+      }
+      P.push('    if (!_fullscreen) {');
+      P.push('        window_set_size(_win_w, _win_h);');
+      P.push('        window_center();');
+      P.push('    }');
+      P.push('');
+      P.push('    var _disp_w = _fullscreen ? display_get_width()  : _win_w;');
+      P.push('    var _disp_h = _fullscreen ? display_get_height() : _win_h;');
+      P.push('');
+      if(o.aspect === 'keep'){
+        P.push('    // keep aspect ratio (letterbox). GameMaker adds black bars to fill.');
+        if(pix){
+          P.push('    var _scale = max(1, floor(min(_disp_w / cam_w, _disp_h / cam_h)));');
+        }
+      } else if(o.aspect === 'expand'){
+        P.push('    // expand: widen the view to match the screen (less letterboxing)');
+        P.push('    var _ar = _disp_w / _disp_h;');
+        P.push('    cam_w = round(cam_h * _ar);');
+        P.push('    camera_set_view_size(CAMERA, cam_w, cam_h);');
+      } else {
+        P.push('    // stretch: fill the window, aspect ratio not preserved');
+      }
+      P.push('');
+      if(pix){
+        P.push('    gpu_set_texfilter(false);');
+        P.push('    surface_resize(application_surface, cam_w, cam_h);');
+      } else {
+        P.push('    surface_resize(application_surface, _disp_w, _disp_h);');
+      }
+      pushGui(P, W, H, false);
+      P.push('}');
+    }
+
+    // ---- GUI scale controls (player preference) ----
+    if(o.guiMode === 'scaled'){
+      const step = num(o.guiScaleStep, 0.05);
+      P.push('');
+      P.push('/// @desc Make the HUD bigger (call from an options menu)');
+      P.push('function gui_scale_increase() {');
+      P.push('    global.gui_scale_user = min(global.gui_scale_user + '+step+', 3.0);');
+      P.push('    camera_refresh_gui();');
+      P.push('}');
+      P.push('');
+      P.push('/// @desc Make the HUD smaller');
+      P.push('function gui_scale_decrease() {');
+      P.push('    global.gui_scale_user = max(global.gui_scale_user - '+step+', 0.5);');
+      P.push('    camera_refresh_gui();');
+      P.push('}');
+      P.push('');
+      P.push('/// @desc Re-apply the GUI scale after changing the user preference');
+      P.push('function camera_refresh_gui() {');
+      P.push('    var _gw = '+(o.window ? 'window_get_width()' : 'window_get_width()')+';');
+      P.push('    var _gh = '+(o.window ? 'window_get_height()' : 'window_get_height()')+';');
+      P.push('    global.gui_scale = min(_gw / '+num(o.guiW,W)+', _gh / '+num(o.guiH,H)+') * global.gui_scale_user;');
+      P.push('}');
+    }
+
+    return P.join('\n');
+  }
+
+  function genCreate(){
+    return 'camera_init();';
+  }
+  function genStep(){
+    const L = ['camera_update();'];
+    if(o.zoom && o.zoomCtrl === 'wheel'){
+      L.push('');
+      L.push('// zoom — mouse wheel');
+      L.push('if (mouse_wheel_up())   camera_set_zoom(cam_zoom_target + 0.25);');
+      L.push('if (mouse_wheel_down()) camera_set_zoom(cam_zoom_target - 0.25);');
+    } else if(o.zoom && o.zoomCtrl === 'keys'){
+      L.push('');
+      L.push('// zoom — Q / E');
+      L.push('if (keyboard_check_pressed(ord("Q"))) camera_set_zoom(cam_zoom_target + 0.25);');
+      L.push('if (keyboard_check_pressed(ord("E"))) camera_set_zoom(cam_zoom_target - 0.25);');
+    }
+    return L.join('\n');
+  }
+
+  // ---------- helpers ----------
+  function san(s){ return (s||'').trim().replace(/[^A-Za-z0-9_\.\[\]]/g,''); }
+  function num(v, d){ const n = parseFloat(v); return isNaN(n) ? d : n; }
+
+  // ---------- render ----------
+  function generate(){
+    $('outScript').value = genScript();
+    $('outCreate').value = genCreate();
+    $('outStep').value   = genStep();
+    save();
+  }
+
+  // ---------- UI wiring ----------
+  // resolution presets
+  $('resPresets').querySelectorAll('button').forEach(b=>{
+    b.addEventListener('click', ()=>{
+      $('resPresets').querySelectorAll('button').forEach(x=>x.classList.remove('on'));
+      b.classList.add('on');
+      o.baseW = +b.dataset.w; o.baseH = +b.dataset.h;
+      $('baseW').value = o.baseW; $('baseH').value = o.baseH;
+      generate();
+    });
+  });
+  $('baseW').addEventListener('input', ()=>{ o.baseW = $('baseW').value; clearPreset('resPresets'); generate(); });
+  $('baseH').addEventListener('input', ()=>{ o.baseH = $('baseH').value; clearPreset('resPresets'); generate(); });
+  function clearPreset(id){ $(id).querySelectorAll('button').forEach(x=>x.classList.remove('on')); }
+
+  // mode
+  segWire('modeSeg', 'mode', 'mode', ()=>{
+    $('modeHint').textContent = o.mode === 'pixel'
+      ? 'Pixel art: surface stays at base size, scaled with no blur (nearest-neighbour). Best for pixel games.'
+      : 'Smooth / HD: surface renders at window size for crisp high-res scaling. Best for non-pixel art.';
+  });
+
+  // target
+  $('target').addEventListener('input', ()=>{ o.target = $('target').value; generate(); });
+  $('objName').addEventListener('input', ()=>{ o.objName = $('objName').value; generate(); });
+
+  // number inputs
+  ['lerpSpd','dzW','dzH','zoomMin','zoomMax','guiW','guiH','guiScaleStep'].forEach(id=>{
+    $(id).addEventListener('input', ()=>{ o[id] = $(id).value; generate(); });
+  });
+
+  // switches
+  document.querySelectorAll('.switch[data-sw]').forEach(sw=>{
+    const key = sw.dataset.sw;
+    sw.addEventListener('click', ()=>{
+      o[key] = !o[key];
+      sw.classList.toggle('on', o[key]);
+      const sub = $('sub-'+key);
+      if(sub) sub.classList.toggle('show', o[key]);
+      generate();
+    });
+  });
+
+  // zoom control
+  segWire('zoomCtrl', 'ctrl', 'zoomCtrl');
+  // aspect
+  segWire('aspectSeg', 'aspect', 'aspect', ()=>{
+    const m = { keep:'Keep: black bars, pixels stay square. The safe default.',
+                expand:'Expand: wider screens see more of the room, no bars. Design with extra width in mind.',
+                stretch:'Stretch: fills the screen but distorts the image. Rarely what you want.' };
+    $('aspectHint').textContent = m[o.aspect];
+  });
+  // gui
+  segWire('guiSeg', 'gui', 'guiMode', ()=>{
+    const showSub = (o.guiMode === 'custom' || o.guiMode === 'scaled');
+    $('sub-gui').classList.toggle('show', showSub);
+    $('row-guiStep').style.display = (o.guiMode === 'scaled') ? '' : 'none';
+    const m = {
+      base:'Match base: GUI uses the base resolution, GameMaker stretches it to fit. Simplest, HUD looks the same everywhere.',
+      custom:'Custom: a fixed GUI size you set. GameMaker stretches it to the screen.',
+      scaled:'Scaled: GUI matches the screen and you get a GUI_SCALE value to multiply your HUD by, so it stays sharp (great for pixel art). Includes a user multiplier so players can size the HUD up or down.'
+    };
+    $('guiHint').textContent = m[o.guiMode];
+  });
+
+  function segWire(segId, dataAttr, optKey, after){
+    $(segId).querySelectorAll('button').forEach(b=>{
+      b.addEventListener('click', ()=>{
+        $(segId).querySelectorAll('button').forEach(x=>x.classList.remove('on'));
+        b.classList.add('on');
+        o[optKey] = b.dataset[dataAttr];
+        if(after) after();
+        generate();
+      });
+    });
+  }
+
+  // ---------- copy ----------
+  document.querySelectorAll('[data-copy]').forEach(b=>{
+    b.addEventListener('click', ()=>{
+      const t = $(b.dataset.copy); if(!t) return;
+      copyText(t.value, b);
+    });
+  });
+  function copyText(text, btn){
+    let ok=false;
+    try{
+      const ta=document.createElement('textarea');
+      ta.value=text; ta.setAttribute('readonly','');
+      ta.style.cssText='position:absolute;left:-9999px;top:0;font-size:16px;';
+      document.body.appendChild(ta);
+      ta.select(); ta.setSelectionRange(0, text.length);
+      ok=document.execCommand('copy');
+      document.body.removeChild(ta);
+      const sel=window.getSelection(); if(sel) sel.removeAllRanges();
+    }catch(e){ ok=false; }
+    if(!ok && navigator.clipboard){ try{ navigator.clipboard.writeText(text); }catch(e){} }
+    const orig = btn.textContent;
+    btn.classList.add('copied'); btn.textContent='Copied!';
+    clearTimeout(btn._ct);
+    btn._ct=setTimeout(()=>{ btn.textContent=orig; btn.classList.remove('copied'); }, 900);
+  }
+
+  // ---------- save / load ----------
+  let saveT=null;
+  function save(){
+    if(saveT) clearTimeout(saveT);
+    saveT=setTimeout(()=>{ try{ localStorage.setItem(SKEY, JSON.stringify(o)); }catch(e){} }, 300);
+  }
+  function load(){
+    try{
+      const raw=localStorage.getItem(SKEY); if(!raw) return false;
+      const d=JSON.parse(raw); if(!d) return false;
+      Object.assign(o, d);
+      // reflect into UI
+      $('baseW').value=o.baseW; $('baseH').value=o.baseH;
+      $('target').value=o.target; $('objName').value=o.objName;
+      $('lerpSpd').value=o.lerpSpd; $('dzW').value=o.dzW; $('dzH').value=o.dzH;
+      $('zoomMin').value=o.zoomMin; $('zoomMax').value=o.zoomMax;
+      $('guiW').value=o.guiW; $('guiH').value=o.guiH; $('guiScaleStep').value=o.guiScaleStep||0.05;
+      // segments
+      setSeg('modeSeg','mode',o.mode);
+      setSeg('zoomCtrl','ctrl',o.zoomCtrl);
+      setSeg('aspectSeg','aspect',o.aspect);
+      setSeg('guiSeg','gui',o.guiMode);
+      setRes();
+      // switches
+      ['smooth','deadzone','clamp','shake','zoom','window','borderless'].forEach(k=>{
+        const sw=document.querySelector('.switch[data-sw="'+k+'"]');
+        if(sw){ sw.classList.toggle('on', !!o[k]); const sub=$('sub-'+k); if(sub) sub.classList.toggle('show', !!o[k]); }
+      });
+      $('sub-gui').classList.toggle('show', o.guiMode==='custom' || o.guiMode==='scaled');
+      $('row-guiStep').style.display = (o.guiMode==='scaled') ? '' : 'none';
+      return true;
+    }catch(e){ return false; }
+  }
+  function setSeg(segId, attr, val){
+    $(segId).querySelectorAll('button').forEach(b=> b.classList.toggle('on', b.dataset[attr]===val));
+  }
+  function setRes(){
+    let found=false;
+    $('resPresets').querySelectorAll('button').forEach(b=>{
+      const m = (+b.dataset.w===+o.baseW && +b.dataset.h===+o.baseH);
+      b.classList.toggle('on', m); if(m) found=true;
+    });
+  }
+
+  // ---------- init ----------
+  load();
+  generate();
+})();
+
+</script>
+</body>
+</html>
